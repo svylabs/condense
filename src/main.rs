@@ -1,11 +1,10 @@
 use actix_web::{App, HttpServer, web};
-use condense::{test, ckg, sign};
+use condense::{ckg, sign};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
-            .configure(test::init_routes)
             .configure(ckg::init_routes)
             .configure(sign::init_routes)
     })
