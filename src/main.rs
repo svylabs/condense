@@ -1,5 +1,5 @@
 use actix_web::{App, HttpServer, web};
-use condense::{ckg, sign};
+use condense::{ckg, sign, signers, users};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -7,6 +7,8 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .configure(ckg::init_routes)
             .configure(sign::init_routes)
+            .configure(signers::init_routes)
+            .configure(users::init_routes)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
