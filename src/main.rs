@@ -1,5 +1,5 @@
 use actix_web::{App, HttpServer, web};
-use condense::{test, ckg};
+use condense::{test, ckg, sign};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -7,6 +7,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .configure(test::init_routes)
             .configure(ckg::init_routes)
+            .configure(sign::init_routes)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
