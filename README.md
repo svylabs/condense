@@ -1,3 +1,3 @@
-# Condense
+# Condenser
 
-Condense is a centralized coordinator process for producing FROST threshold signatures.
+Condenser is a centralized coordinator process for producing FROST threshold signatures.
