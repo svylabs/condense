@@ -1,5 +1,11 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 
+pub struct SigningSession {
+    pub id: String,
+    pub key: String,
+    pub message: [u8; 32]
+}
+
 #[get("/round1")]
 async fn round1() -> impl Responder {
     HttpResponse::Ok().body("Round 1")
