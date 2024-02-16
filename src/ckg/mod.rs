@@ -42,7 +42,9 @@ pub struct CDKGSession {
 
 #[post("/new-session")]
 async fn new_dkg_session(state: web::Data<AppState>) -> impl Responder {
+    //let conn = state.get_connection();
     // Create a new CDKG session
+    /*
     state.cdkg_sessions.lock().unwrap().push(CDKGSession {
         id: 0,
         participants: Vec::new(),
@@ -53,6 +55,7 @@ async fn new_dkg_session(state: web::Data<AppState>) -> impl Responder {
         timeout: 0,
         key: None
     });
+    */
     // Set the participants, threshold, and current state
     // Return the session ID
     HttpResponse::Ok().body("Round 1")
