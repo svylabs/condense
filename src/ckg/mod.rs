@@ -1,5 +1,5 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
-use crate::state::app_state::AppState;
+use crate::{state::app_state::AppState, Pool};
 
 pub enum ParticipantState {
     Initiated,
@@ -41,8 +41,8 @@ pub struct CDKGSession {
 }
 
 #[post("/new-session")]
-async fn new_dkg_session(state: web::Data<AppState>) -> impl Responder {
-    //let conn = state.get_connection();
+async fn new_dkg_session(db: web::Data<Pool>) -> impl Responder {
+    let conn = db.get().unwrap();
     // Create a new CDKG session
     /*
     state.cdkg_sessions.lock().unwrap().push(CDKGSession {

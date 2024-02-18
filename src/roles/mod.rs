@@ -21,7 +21,6 @@ fn add_new_roles(roles: Vec<NewRole>, db: web::Data<Pool>) -> Result<usize, dies
             .execute(&mut connection)
 }
 
-
 pub fn init_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/roles")
