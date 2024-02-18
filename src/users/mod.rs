@@ -1,44 +1,50 @@
 pub mod types;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
-use diesel::prelude::*;
+use diesel::{prelude::*};
+use diesel::r2d2::ConnectionManager;
 use diesel::{connection, Connection, PgConnection, RunQueryDsl};
 
-use crate::{state::app_state::AppState, users::types::NewUserInput};
+use crate::{Pool};
+use crate::{users::types::NewUserInput};
 use crate::schema::{users, roles};
 use crate::models::{NewUser, NewUserRole, Role, User};
 
 #[post("/new")]
-async fn new_user(body: web::Json<NewUserInput>, state: web::Data<AppState>) -> impl Responder {
-    let mut pool = state.pool.get().unwrap();
+async fn new_user(body: web::Json<NewUserInput>, db: web::Data<Pool>) -> impl Responder {
     let new_user_input = body.into_inner();
     let new_user = NewUser {
         username: new_user_input.username,
     };
-    let result = pool.transaction::<User, diesel::result::Error, _>(|pool| {
+    let result = add_new_user(new_user, new_user_input.roles, db);
+    match result {
+        Ok(inserted_user) => HttpResponse::Ok().body(format!("New user created: {:?}", inserted_user)),
+        Err(e) => HttpResponse::BadRequest().body(format!("Error creating user: {:?}", e))
+    }
+}
+
+fn add_new_user(user: NewUser, roles_user: Option<Vec<String>>, db: web::Data<Pool>) -> Result<User, diesel::result::Error> {
+    let mut connection = db.get().unwrap();
+    connection.transaction::<User, diesel::result::Error, _>(|conn| {
         let inserted_user = diesel::insert_into(users::table)
-            .values(&new_user)
-            .get_result::<User>(pool)
+            .values(&user)
+            .get_result::<User>(conn)
             .unwrap();
-        let all_roles = new_user_input.roles.unwrap();
+        let all_roles = roles_user.unwrap();
         let total_roles = all_roles.len();
         let user_roles = roles::table
             .filter(roles::name.eq_any(all_roles))
-            .load::<Role>(pool)
+            .load::<Role>(conn)
             .expect("Error loading roles");
         let user_roles_to_insert = NewUserRole::new(inserted_user.id, &user_roles);
         diesel::insert_into(crate::schema::user_roles::table)
             .values(&user_roles_to_insert)
-            .execute(pool)
+            .execute(conn)
             .expect("Error inserting user roles");
         match total_roles != user_roles.len() {
             true =>  Err(diesel::result::Error::NotFound),
             false => Ok(inserted_user)
         }
-    });
-    match result {
-        Ok(inserted_user) => HttpResponse::Ok().body(format!("New user created: {:?}", inserted_user)),
-        Err(e) => HttpResponse::BadRequest().body(format!("Error creating user: {:?}", e))
-    }
+    })
 }
 
 #[get("/list")]
