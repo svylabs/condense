@@ -1,5 +1,5 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
-use crate::{state::app_state::AppState, Pool};
+use actix_web::{get, post, web, HttpResponse, Responder};
+use crate::{Pool};
 
 pub enum ParticipantState {
     Initiated,
