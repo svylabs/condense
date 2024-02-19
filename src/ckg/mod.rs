@@ -1,5 +1,7 @@
 use actix_web::{get, post, web, HttpResponse, Responder};
-use crate::{Pool};
+use crate::{schema::{roles, user_roles, users}, Pool};
+use crate::models::{roles::Role, user_roles::UserRole, users::User, cdkg_session::NewCDKGSession};
+use diesel::prelude::*;
 
 pub enum ParticipantState {
     Initiated,
@@ -29,6 +31,7 @@ pub enum CDKGRequestState {
     Timedout
 }
 
+/*
 pub struct CDKGSession {
     pub id: u64,
     pub participants: Vec<Participant>,
@@ -39,10 +42,32 @@ pub struct CDKGSession {
     pub timeout: u64,
     pub key: Option<Vec<u8>>,
 }
+*/
 
 #[post("/new-session")]
 async fn new_dkg_session(db: web::Data<Pool>) -> impl Responder {
-    let conn = db.get().unwrap();
+    let mut conn = db.get().unwrap();
+    let signer_role = roles::table
+        .filter(roles::name.eq("signer"))
+        .first::<Role>(&mut conn)
+        .expect("Error loading roles");
+    let signer_users = user_roles::table
+        .filter(user_roles::role_id.eq(signer_role.id))
+        .load::<UserRole>(&mut conn)
+        .expect("Error loading users");
+    let signers = users::table
+        .filter(users::id.eq_any(signer_users.iter().map(|user_role| user_role.user_id).collect::<Vec<i32>>()))
+        .load::<User>(&mut conn)
+        .expect("Error loading users");
+
+    let new_session = NewCDKGSession {
+        initiated_by: 0,
+        threshold: 0,
+        total_participants: 0,
+        current_state: "Requested".to_string(),
+        ckg_session_timeout: 0,
+        generated_public_key: "".to_string()
+    };
     // Create a new CDKG session
     /*
     state.cdkg_sessions.lock().unwrap().push(CDKGSession {

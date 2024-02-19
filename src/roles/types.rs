@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-use crate::models::NewRole;
+use crate::models::roles::NewRole;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewRolesInput {

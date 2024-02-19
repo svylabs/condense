@@ -7,7 +7,7 @@ use diesel::{connection, Connection, PgConnection, RunQueryDsl};
 use crate::{Pool};
 use crate::{users::types::NewUserInput};
 use crate::schema::{users, roles};
-use crate::models::{NewUser, NewUserRole, Role, User};
+use crate::models::{users::{NewUser, User}, user_roles::NewUserRole, roles::Role};
 
 #[post("/new")]
 async fn new_user(body: web::Json<NewUserInput>, db: web::Data<Pool>) -> impl Responder {

@@ -40,8 +40,8 @@ diesel::table! {
 diesel::table! {
     user_roles (id) {
         id -> Int4,
-        user_id -> Nullable<Int4>,
-        role_id -> Nullable<Int4>,
+        user_id -> Int4,
+        role_id -> Int4,
     }
 }
 

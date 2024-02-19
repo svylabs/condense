@@ -17,8 +17,8 @@ INSERT INTO roles (name, description) VALUES ('signer', 'Signers');
 
 CREATE TABLE user_roles (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id),
-  role_id INTEGER REFERENCES roles(id)
+  user_id INTEGER REFERENCES users(id) NOT NULL,
+  role_id INTEGER REFERENCES roles(id) NOT NULL
 );
 
 INSERT INTO user_roles (user_id, role_id) VALUES (1, 1);

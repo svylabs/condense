@@ -1,7 +1,7 @@
 pub mod types;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 
-use crate::{models::{NewRole, Role}, Pool};
+use crate::{models::roles::{NewRole, Role}, Pool};
 use diesel::{prelude::*};
 
 #[post("/add")]
