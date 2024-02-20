@@ -1,7 +1,10 @@
+pub mod types;
 use actix_web::{get, post, web, HttpResponse, Responder};
-use crate::{schema::{roles, user_roles, users}, Pool};
-use crate::models::{roles::Role, user_roles::UserRole, users::User, cdkg_session::NewCDKGSession};
 use diesel::prelude::*;
+use crate::{schema::{ckg_sessions, ckg_session_participant_values}, Pool};
+use crate::models::{roles::Role, user_roles::UserRole, users::User, cdkg_session::{CDKGSession, NewCDKGSession, NewCDKGSessionParticipant}};
+use chrono::prelude::{Utc};
+use crate::services::ckg::types::ListSessionsInput;
 
 pub enum ParticipantState {
     Initiated,
@@ -9,15 +12,6 @@ pub enum ParticipantState {
     Round2,
     Round3,
     Completed
-}
-
-pub struct Participant {
-    pub id: u64,
-    pub state: ParticipantState,
-    pub communication_key: Option<Vec<u8>>, // Ed25519 public key that will be used to encrypt data using ECDH
-    pub round1_data: Option<Vec<Vec<u8>>>,
-    pub round2_data: Option<Vec<Vec<u8>>>,
-    pub round3_data: Option<Vec<Vec<u8>>>
 }
 
 pub enum CDKGRequestState {
@@ -31,62 +25,63 @@ pub enum CDKGRequestState {
     Timedout
 }
 
-/*
-pub struct CDKGSession {
-    pub id: u64,
-    pub participants: Vec<Participant>,
-    pub threshold: u16,
-    pub current_state: CDKGRequestState,
-    pub start_time: u64,
-    pub last_updated: u64,
-    pub timeout: u64,
-    pub key: Option<Vec<u8>>,
-}
-*/
-
 #[post("/new-session")]
 async fn new_dkg_session(db: web::Data<Pool>) -> impl Responder {
     let mut conn = db.get().unwrap();
-    let signer_role = Role::find_by_name("signer", &mut conn).unwrap();
-    let signer_users = user_roles::table
-        .filter(user_roles::role_id.eq(signer_role.id))
-        .load::<UserRole>(&mut conn)
-        .expect("Error loading users");
-    let signers = users::table
-        .filter(users::id.eq_any(signer_users.iter().map(|user_role| user_role.user_id).collect::<Vec<i32>>()))
-        .load::<User>(&mut conn)
-        .expect("Error loading users");
-
-    let new_session = NewCDKGSession {
-        initiated_by: 0,
-        threshold: ((signers.len() as i32) / 2 + 1),
-        total_participants: signers.len() as i32,
-        current_state: "Requested".to_string(),
-        ckg_session_timeout: 0,
-        generated_public_key: "".to_string()
-    };
-    // Create a new CDKG session
-    /*
-    state.cdkg_sessions.lock().unwrap().push(CDKGSession {
-        id: 0,
-        participants: Vec::new(),
-        threshold: 0,
-        current_state: CDKGRequestState::Requested,
-        start_time: 0,
-        last_updated: 0,
-        timeout: 0,
-        key: None
+    let result = conn.transaction::<CDKGSession, diesel::result::Error, _>(|conn| {
+        let signer_role = Role::find_by_name("signer", conn).unwrap();
+        let signer_users = UserRole::find_users_by_role_id(signer_role.id, conn).unwrap();
+        let signers = User::find_users_by_ids(signer_users.iter().map(|user_role| user_role.user_id).collect::<Vec<i32>>(), conn).unwrap();
+        let new_session = NewCDKGSession {
+            initiated_by: 2, // change this
+            threshold: ((signers.len() as i32) / 2 + 1),
+            total_participants: signers.len() as i32,
+            current_state: "Requested".to_string(),
+            ckg_session_timeout: 0,
+            created_on: Utc::now().naive_utc()
+        };
+        let inserted_session = diesel::insert_into(ckg_sessions::table)
+            .values(&new_session)
+            .get_result::<CDKGSession>(conn)
+            .unwrap();
+        let participants = signers.iter().map(|signer| {
+            NewCDKGSessionParticipant {
+                ckg_session_id: inserted_session.id,
+                participant_id: signer.id,
+                current_state: "".to_string(),
+                session_public_keys: None,
+                round1_data: None,
+                round2_data: None,
+                round3_data: None
+            }
+        }).collect::<Vec<NewCDKGSessionParticipant>>();
+        let inserted_participants = diesel::insert_into(ckg_session_participant_values::table)
+            .values(&participants)
+            .execute(conn)
+            .unwrap();
+        Ok(inserted_session)
     });
-    */
-    // Set the participants, threshold, and current state
-    // Return the session ID
-    HttpResponse::Ok().body("Round 1")
+    match result {
+        Ok(session) => HttpResponse::Ok().json(session),
+        Err(_) => HttpResponse::InternalServerError().finish()
+    }
 }
 
-#[get("/list-sessions")]
-async fn list_sessions() -> impl Responder {
+#[post("/list-sessions")]
+async fn list_sessions(body: web::Json<ListSessionsInput>, db: web::Data<Pool>) -> impl Responder {
     // List sessions based on filter
-    HttpResponse::Ok().body("Round 1")
+    let mut conn = db.get().unwrap();
+    let input = body.into_inner();
+    println!("Inputs {:?}", input);
+    let session_status = match input.session_status {
+        Some(status) => status,
+        None => "Requested".to_string()
+    };
+    let result = CDKGSession::list_sessions(session_status, &mut conn);
+    match result {
+        Ok(sessions) => HttpResponse::Ok().json(sessions),
+        Err(_) => HttpResponse::InternalServerError().finish()
+    }
 }
 
 #[post("/init-participant")]
@@ -122,7 +117,8 @@ async fn round3() -> impl Responder {
 pub fn init_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/ckg")
-            .service(round1)
+            .service(new_dkg_session)
+            .service(list_sessions)
             .service(round2)
             .service(round3)
     );

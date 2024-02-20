@@ -1,8 +1,7 @@
 pub mod types;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use diesel::{prelude::*};
-use diesel::r2d2::ConnectionManager;
-use diesel::{connection, Connection, PgConnection, RunQueryDsl};
+use diesel::{Connection, PgConnection, RunQueryDsl};
 
 use crate::services::users::types::NewUserInput;
 use crate::{Pool};

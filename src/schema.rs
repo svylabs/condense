@@ -10,8 +10,8 @@ diesel::table! {
         round1_data -> Nullable<Bytea>,
         round2_data -> Nullable<Bytea>,
         round3_data -> Nullable<Bytea>,
-        updated_at -> Timestamp,
         created_on -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
     }
 }
 
@@ -23,9 +23,9 @@ diesel::table! {
         total_participants -> Int4,
         current_state -> Varchar,
         ckg_session_timeout -> Int4,
-        generated_public_key -> Varchar,
-        updated_at -> Timestamp,
+        generated_public_key -> Nullable<Bytea>,
         created_on -> Timestamp,
+        updated_at -> Nullable<Timestamp>,
     }
 }
 

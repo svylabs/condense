@@ -10,12 +10,14 @@ pub struct User {
 }
 
 impl User {
-    pub fn find_by_username(name: &str, conn: &mut PgConnection) -> QueryResult<User> {
+    pub fn find_by_username(name: &str, conn: &mut PgConnection) -> Result<User, diesel::result::Error> {
         use crate::schema::users::dsl::*;
-        users.filter(crate::schema::users::username.eq(name)).first(conn)
+        users.filter(crate::schema::users::username.eq(name))
+            .first(conn)
+            .map_err(|e| e.into())
     }
 
-    pub fn find_by_user_ids(user_ids: Vec<i32>, conn: &mut PgConnection) -> QueryResult<Vec<User>> {
+    pub fn find_users_by_ids(user_ids: Vec<i32>, conn: &mut PgConnection) -> Result<Vec<User>, diesel::result::Error> {
         use crate::schema::users::dsl::*;
         users.filter(id.eq_any(user_ids))
             .load(conn)
