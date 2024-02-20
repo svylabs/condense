@@ -47,10 +47,7 @@ pub struct CDKGSession {
 #[post("/new-session")]
 async fn new_dkg_session(db: web::Data<Pool>) -> impl Responder {
     let mut conn = db.get().unwrap();
-    let signer_role = roles::table
-        .filter(roles::name.eq("signer"))
-        .first::<Role>(&mut conn)
-        .expect("Error loading roles");
+    let signer_role = Role::find_by_name("signer", &mut conn).unwrap();
     let signer_users = user_roles::table
         .filter(user_roles::role_id.eq(signer_role.id))
         .load::<UserRole>(&mut conn)
@@ -62,8 +59,8 @@ async fn new_dkg_session(db: web::Data<Pool>) -> impl Responder {
 
     let new_session = NewCDKGSession {
         initiated_by: 0,
-        threshold: 0,
-        total_participants: 0,
+        threshold: ((signers.len() as i32) / 2 + 1),
+        total_participants: signers.len() as i32,
         current_state: "Requested".to_string(),
         ckg_session_timeout: 0,
         generated_public_key: "".to_string()

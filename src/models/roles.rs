@@ -16,3 +16,12 @@ pub struct NewRole {
     pub name: String,
     pub description: String,
 }
+
+impl Role {
+    pub fn find_by_name(role_name: &str, conn: &mut PgConnection) -> Result<Role, diesel::result::Error> {
+        use crate::schema::roles::dsl::*;
+        roles.filter(name.eq(role_name))
+            .first(conn)
+            .map_err(|e| e.into())
+    }
+}

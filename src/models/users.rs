@@ -9,6 +9,20 @@ pub struct User {
     pub username: String,
 }
 
+impl User {
+    pub fn find_by_username(name: &str, conn: &mut PgConnection) -> QueryResult<User> {
+        use crate::schema::users::dsl::*;
+        users.filter(crate::schema::users::username.eq(name)).first(conn)
+    }
+
+    pub fn find_by_user_ids(user_ids: Vec<i32>, conn: &mut PgConnection) -> QueryResult<Vec<User>> {
+        use crate::schema::users::dsl::*;
+        users.filter(id.eq_any(user_ids))
+            .load(conn)
+            .map_err(|e| e.into())
+    }
+}
+
 #[derive(Insertable)]
 #[diesel(table_name = crate::schema::users)]
 pub struct NewUser {

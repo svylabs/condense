@@ -1,4 +1,3 @@
-use crate::signers::Signer;
 use std::sync::{Arc, Mutex};
 use diesel::r2d2::{self, ConnectionManager, Pool, PooledConnection};
 use diesel::pg::PgConnection;

@@ -4,8 +4,8 @@ use diesel::{prelude::*};
 use diesel::r2d2::ConnectionManager;
 use diesel::{connection, Connection, PgConnection, RunQueryDsl};
 
+use crate::services::users::types::NewUserInput;
 use crate::{Pool};
-use crate::{users::types::NewUserInput};
 use crate::schema::{users, roles};
 use crate::models::{users::{NewUser, User}, user_roles::NewUserRole, roles::Role};
 

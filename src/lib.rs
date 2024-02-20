@@ -1,11 +1,6 @@
-pub mod ckg;
-pub mod sign;
-pub mod signers;
-pub mod users;
+pub mod services;
 pub mod state;
 pub mod schema;
-pub mod roles;
 pub mod models;
-use diesel::prelude::*;
 pub type Pool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 pub type Connection = diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
