@@ -15,6 +15,8 @@ CREATE TABLE ckg_sessions (
   updated_at TIMESTAMP
 );
 
+SELECT diesel_manage_updated_at('ckg_sessions');
+
 CREATE TABLE ckg_session_participant_values (
   id SERIAL PRIMARY KEY,
   ckg_session_id INTEGER REFERENCES ckg_sessions(id) NOT NULL,
@@ -28,3 +30,4 @@ CREATE TABLE ckg_session_participant_values (
   updated_at  TIMESTAMP
 );
 
+SELECT diesel_manage_updated_at('ckg_session_participant_values');

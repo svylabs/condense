@@ -6,7 +6,7 @@ diesel::table! {
         ckg_session_id -> Int4,
         participant_id -> Int4,
         current_state -> Nullable<Varchar>,
-        session_public_keys -> Nullable<Bytea>,
+        session_public_key -> Nullable<Bytea>,
         round1_data -> Nullable<Bytea>,
         round2_data -> Nullable<Bytea>,
         round3_data -> Nullable<Bytea>,

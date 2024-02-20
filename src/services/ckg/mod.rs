@@ -2,9 +2,9 @@ pub mod types;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use diesel::prelude::*;
 use crate::{schema::{ckg_sessions, ckg_session_participant_values}, Pool};
-use crate::models::{roles::Role, user_roles::UserRole, users::User, cdkg_session::{CDKGSession, NewCDKGSession, NewCDKGSessionParticipant}};
+use crate::models::{roles::Role, user_roles::UserRole, users::User, cdkg_session::{CDKGSession, NewCDKGSession, NewCDKGSessionParticipant, CDKGSessionParticipant}};
 use chrono::prelude::{Utc};
-use crate::services::ckg::types::ListSessionsInput;
+use crate::services::ckg::types::{ListSessionsInput, InitParticipantInput, GetSessionResult};
 
 pub enum ParticipantState {
     Initiated,
@@ -48,11 +48,7 @@ async fn new_dkg_session(db: web::Data<Pool>) -> impl Responder {
             NewCDKGSessionParticipant {
                 ckg_session_id: inserted_session.id,
                 participant_id: signer.id,
-                current_state: "".to_string(),
-                session_public_keys: None,
-                round1_data: None,
-                round2_data: None,
-                round3_data: None
+                current_state: "".to_string()
             }
         }).collect::<Vec<NewCDKGSessionParticipant>>();
         let inserted_participants = diesel::insert_into(ckg_session_participant_values::table)
@@ -72,7 +68,6 @@ async fn list_sessions(body: web::Json<ListSessionsInput>, db: web::Data<Pool>) 
     // List sessions based on filter
     let mut conn = db.get().unwrap();
     let input = body.into_inner();
-    println!("Inputs {:?}", input);
     let session_status = match input.session_status {
         Some(status) => status,
         None => "Requested".to_string()
@@ -85,15 +80,37 @@ async fn list_sessions(body: web::Json<ListSessionsInput>, db: web::Data<Pool>) 
 }
 
 #[post("/init-participant")]
-async fn init_participant() -> impl Responder {
-    // Initialize the participant for the dkg session
-    HttpResponse::Ok().body("Round 1")
+async fn init_participant(body: web::Json<InitParticipantInput>, db: web::Data<Pool>) -> impl Responder {
+    let mut conn = db.get().unwrap();
+    let input = body.into_inner();
+    let participant_id = 2; // change this
+    let result = conn.transaction::<usize, diesel::result::Error, _>(|conn| {
+        let participant_session = CDKGSessionParticipant::find_by_session_and_participant(input.session_id, participant_id, conn).unwrap();
+        diesel::update(ckg_session_participant_values::table)
+            .filter(ckg_session_participant_values::id.eq(participant_session.id))
+            .set((ckg_session_participant_values::current_state.eq("Initiated"),
+                 (ckg_session_participant_values::session_public_key.eq(input.public_key))
+                )
+            )
+            .execute(conn)
+    });
+    match result {
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish()
+    }
 }
 
-#[get("/session/:id")]
-async fn get_session() -> impl Responder {
+#[get("/session/{id}")]
+async fn get_session(path: web::Path<i32>, db: web::Data<Pool>) -> impl Responder {
     // Get the session details
-    HttpResponse::Ok().body("Round 1")
+    let mut conn = db.get().unwrap();
+    let id = path.into_inner();
+    let result = conn.transaction::<GetSessionResult, diesel::result::Error, _>(|conn| {
+        let session_details = CDKGSession::find_by_id(id, conn).unwrap();
+        let participant_details = CDKGSessionParticipant::find_by_session(session_details.id, conn).unwrap();
+        Ok(GetSessionResult { session_details, participant_details})
+    }).unwrap();
+    HttpResponse::Ok().json(result)
 }
 
 #[post("/round1")]
@@ -119,6 +136,8 @@ pub fn init_routes(cfg: &mut web::ServiceConfig) {
         web::scope("/ckg")
             .service(new_dkg_session)
             .service(list_sessions)
+            .service(init_participant)
+            .service(get_session)
             .service(round2)
             .service(round3)
     );
