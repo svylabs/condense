@@ -17,3 +17,9 @@ pub struct GetSessionResult {
     pub session_details: CDKGSession,
     pub participant_details: Vec<CDKGSessionParticipant>
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PostRoundInput {
+    pub session_id: i32,
+    pub round_data: Vec<u8>
+}

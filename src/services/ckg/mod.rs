@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use crate::{schema::{ckg_sessions, ckg_session_participant_values}, Pool};
 use crate::models::{roles::Role, user_roles::UserRole, users::User, cdkg_session::{CDKGSession, NewCDKGSession, NewCDKGSessionParticipant, CDKGSessionParticipant}};
 use chrono::prelude::{Utc};
-use crate::services::ckg::types::{ListSessionsInput, InitParticipantInput, GetSessionResult};
+use crate::services::ckg::types::{ListSessionsInput, InitParticipantInput, GetSessionResult, PostRoundInput};
 
 pub enum ParticipantState {
     Initiated,
@@ -114,21 +114,57 @@ async fn get_session(path: web::Path<i32>, db: web::Data<Pool>) -> impl Responde
 }
 
 #[post("/round1")]
-async fn round1() -> impl Responder {
-    // Post round 1 data
-    HttpResponse::Ok().body("Round 1")
+async fn round1(body: web::Json<PostRoundInput>, db: web::Data<Pool>) -> impl Responder {
+    let mut conn = db.get().unwrap();
+    let input = body.into_inner();
+    let participant_id = 2; // change this
+    let result = conn.transaction::<usize, diesel::result::Error, _>(|conn| {
+        let participant_session = CDKGSessionParticipant::find_by_session_and_participant(input.session_id, participant_id, conn).unwrap();
+        diesel::update(ckg_session_participant_values::table)
+            .filter(ckg_session_participant_values::id.eq(participant_session.id))
+            .set((ckg_session_participant_values::round1_data.eq(input.round_data), ckg_session_participant_values::current_state.eq("Round1")))
+            .execute(conn)
+    });
+    match result {
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish()
+    }
 }
 
 #[post("/round2")]
-async fn round2() -> impl Responder {
-    //Post round 2 data
-    HttpResponse::Ok().body("Round 2")
+async fn round2(body: web::Json<PostRoundInput>, db: web::Data<Pool>) -> impl Responder {
+    let mut conn = db.get().unwrap();
+    let input = body.into_inner();
+    let participant_id = 2; // change this
+    let result = conn.transaction::<usize, diesel::result::Error, _>(|conn| {
+        let participant_session = CDKGSessionParticipant::find_by_session_and_participant(input.session_id, participant_id, conn).unwrap();
+        diesel::update(ckg_session_participant_values::table)
+            .filter(ckg_session_participant_values::id.eq(participant_session.id))
+            .set((ckg_session_participant_values::round2_data.eq(input.round_data), ckg_session_participant_values::current_state.eq("Round2")))
+            .execute(conn)
+    });
+    match result {
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish()
+    }
 }
 
-#[get("/round3")]
-async fn round3() -> impl Responder {
-    // Post round 3 data
-    HttpResponse::Ok().body("Round 3")
+#[post("/round3")]
+async fn round3(body: web::Json<PostRoundInput>, db: web::Data<Pool>) -> impl Responder {
+    let mut conn = db.get().unwrap();
+    let input = body.into_inner();
+    let participant_id = 2; // change this
+    let result = conn.transaction::<usize, diesel::result::Error, _>(|conn| {
+        let participant_session = CDKGSessionParticipant::find_by_session_and_participant(input.session_id, participant_id, conn).unwrap();
+        diesel::update(ckg_session_participant_values::table)
+            .filter(ckg_session_participant_values::id.eq(participant_session.id))
+            .set((ckg_session_participant_values::round3_data.eq(input.round_data), ckg_session_participant_values::current_state.eq("Round3")))
+            .execute(conn)
+    });
+    match result {
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish()
+    }
 }
 
 pub fn init_routes(cfg: &mut web::ServiceConfig) {
@@ -138,6 +174,7 @@ pub fn init_routes(cfg: &mut web::ServiceConfig) {
             .service(list_sessions)
             .service(init_participant)
             .service(get_session)
+            .service(round1)
             .service(round2)
             .service(round3)
     );
