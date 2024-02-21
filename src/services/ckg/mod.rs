@@ -5,6 +5,7 @@ use crate::{schema::{ckg_sessions, ckg_session_participant_values}, Pool};
 use crate::models::{roles::Role, user_roles::UserRole, users::User, cdkg_session::{CDKGSession, NewCDKGSession, NewCDKGSessionParticipant, CDKGSessionParticipant}};
 use chrono::prelude::{Utc};
 use crate::services::ckg::types::{ListSessionsInput, InitParticipantInput, GetSessionResult, PostRoundInput};
+use crate::auth::AuthedUser;
 
 pub enum ParticipantState {
     Initiated,
@@ -26,7 +27,7 @@ pub enum CDKGRequestState {
 }
 
 #[post("/new-session")]
-async fn new_dkg_session(db: web::Data<Pool>) -> impl Responder {
+async fn new_dkg_session(db: web::Data<Pool>,  user: AuthedUser) -> impl Responder {
     let mut conn = db.get().unwrap();
     let result = conn.transaction::<CDKGSession, diesel::result::Error, _>(|conn| {
         let signer_role = Role::find_by_name("signer", conn).unwrap();
@@ -64,7 +65,7 @@ async fn new_dkg_session(db: web::Data<Pool>) -> impl Responder {
 }
 
 #[post("/list-sessions")]
-async fn list_sessions(body: web::Json<ListSessionsInput>, db: web::Data<Pool>) -> impl Responder {
+async fn list_sessions(body: web::Json<ListSessionsInput>, db: web::Data<Pool>,  user: AuthedUser) -> impl Responder {
     // List sessions based on filter
     let mut conn = db.get().unwrap();
     let input = body.into_inner();
@@ -80,7 +81,7 @@ async fn list_sessions(body: web::Json<ListSessionsInput>, db: web::Data<Pool>) 
 }
 
 #[post("/init-participant")]
-async fn init_participant(body: web::Json<InitParticipantInput>, db: web::Data<Pool>) -> impl Responder {
+async fn init_participant(body: web::Json<InitParticipantInput>, db: web::Data<Pool>,  user: AuthedUser) -> impl Responder {
     let mut conn = db.get().unwrap();
     let input = body.into_inner();
     let participant_id = 2; // change this
@@ -101,7 +102,7 @@ async fn init_participant(body: web::Json<InitParticipantInput>, db: web::Data<P
 }
 
 #[get("/session/{id}")]
-async fn get_session(path: web::Path<i32>, db: web::Data<Pool>) -> impl Responder {
+async fn get_session(path: web::Path<i32>, db: web::Data<Pool>,  user: AuthedUser) -> impl Responder {
     // Get the session details
     let mut conn = db.get().unwrap();
     let id = path.into_inner();
@@ -114,7 +115,7 @@ async fn get_session(path: web::Path<i32>, db: web::Data<Pool>) -> impl Responde
 }
 
 #[post("/round1")]
-async fn round1(body: web::Json<PostRoundInput>, db: web::Data<Pool>) -> impl Responder {
+async fn round1(body: web::Json<PostRoundInput>, db: web::Data<Pool>,  user: AuthedUser) -> impl Responder {
     let mut conn = db.get().unwrap();
     let input = body.into_inner();
     let participant_id = 2; // change this
@@ -132,7 +133,7 @@ async fn round1(body: web::Json<PostRoundInput>, db: web::Data<Pool>) -> impl Re
 }
 
 #[post("/round2")]
-async fn round2(body: web::Json<PostRoundInput>, db: web::Data<Pool>) -> impl Responder {
+async fn round2(body: web::Json<PostRoundInput>, db: web::Data<Pool>,  user: AuthedUser) -> impl Responder {
     let mut conn = db.get().unwrap();
     let input = body.into_inner();
     let participant_id = 2; // change this
@@ -150,9 +151,10 @@ async fn round2(body: web::Json<PostRoundInput>, db: web::Data<Pool>) -> impl Re
 }
 
 #[post("/round3")]
-async fn round3(body: web::Json<PostRoundInput>, db: web::Data<Pool>) -> impl Responder {
+async fn round3(body: web::Json<PostRoundInput>, db: web::Data<Pool>, user: AuthedUser) -> impl Responder {
     let mut conn = db.get().unwrap();
     let input = body.into_inner();
+    println!("User: {:?}", user);
     let participant_id = 2; // change this
     let result = conn.transaction::<usize, diesel::result::Error, _>(|conn| {
         let participant_session = CDKGSessionParticipant::find_by_session_and_participant(input.session_id, participant_id, conn).unwrap();

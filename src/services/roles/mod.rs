@@ -5,7 +5,7 @@ use crate::{models::roles::{NewRole, Role}, Pool};
 use diesel::{prelude::*};
 
 #[post("/add")]
-async fn add_roles(body: web::Json<types::NewRolesInput>, db: web::Data<Pool>) -> impl Responder {
+async fn add_roles(body: web::Json<types::NewRolesInput>, db: web::Data<Pool>,  user: AuthedUser) -> impl Responder {
     let new_roles_input = body.into_inner();
     let result = add_new_roles(new_roles_input.roles, db);
     match result {

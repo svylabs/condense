@@ -9,7 +9,7 @@ use crate::schema::{users, roles};
 use crate::models::{users::{NewUser, User}, user_roles::NewUserRole, roles::Role};
 
 #[post("/new")]
-async fn new_user(body: web::Json<NewUserInput>, db: web::Data<Pool>) -> impl Responder {
+async fn new_user(body: web::Json<NewUserInput>, db: web::Data<Pool>, user: AuthedUser) -> impl Responder {
     let new_user_input = body.into_inner();
     let new_user = NewUser {
         username: new_user_input.username,
